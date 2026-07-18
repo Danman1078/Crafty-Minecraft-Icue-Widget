@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Minecraft Server Widget</title>
+<style>
+  :root {
+    --bg: #14181c;
+    --panel: #1c2126;
+    --border: #2a3138;
+    --text: #e7e9ea;
+    --text-dim: #8b959d;
+    --online: #6bbf59;
+    --online-glow: #6bbf5955;
+    --offline: #c1554a;
+    --offline-glow: #c1554a55;
+    --accent: #e0a94a;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+  }
+
+  /* Built for the Small XENEON Edge slot: 840 x 344px. Plenty of width,
+     tight height -- so this is a two-column layout (info+controls left,
+     players+mods right) rather than one long stacked column. */
+  .card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 22px;
+    gap: 8px;
+  }
+
+  .top-grid {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 22px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    border-left: 1px solid var(--border);
+    padding-left: 22px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .block-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 1px;
+    padding: 2px;
+    background: #000;
+    transition: background 0.4s ease;
+  }
+  .block-icon span { border-radius: 1px; }
+  .block-icon.online { background: #2f3a1f; box-shadow: 0 0 12px var(--online-glow); }
+  .block-icon.online span:nth-child(odd) { background: var(--online); }
+  .block-icon.online span:nth-child(even) { background: #4f8a3f; }
+  .block-icon.offline { background: #3a2222; box-shadow: 0 0 12px var(--offline-glow); }
+  .block-icon.offline span { background: #5c3a36; }
+  .block-icon.offline span:nth-child(5) { background: var(--offline); }
+
+  .server-name {
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: 0.2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status-pill {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    width: fit-content;
+  }
+  .status-pill.online { color: var(--online); background: #22301c; }
+  .status-pill.offline { color: var(--offline); background: #302020; }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .uptime-text {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .updating-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: #2a2115;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .stat-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 16px;
+  }
+  .stat-line .label { color: var(--text-dim); }
+  .stat-line .value { font-family: var(--mono); font-weight: 600; }
+  .stat-line .value.big { font-size: 30px; }
+
+  .update-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: #2a2115;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+
+  .sparkline {
+    flex-shrink: 0;
+  }
+  .sparkline polyline { fill: none; stroke: var(--online); stroke-width: 1.5; }
+
+  .console-line {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  .players-line.flash {
+    animation: flash-bg 1.6s ease-out;
+  }
+  @keyframes flash-bg {
+    0% { background: var(--online-glow); border-radius: 4px; }
+    100% { background: transparent; }
+  }
+
+  .motd {
+    font-size: 14.5px;
+    color: var(--text-dim);
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .section-header .count {
+    font-family: var(--mono);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .players-line {
+    font-size: 15px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .players-line b { color: var(--text); }
+
+  .mod-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: flex-start;
+    min-height: 0;
+  }
+  .mod-chip {
+    font-family: var(--mono);
+    font-size: 13.5px;
+    background: #12151a;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .mod-chip b { color: var(--text); font-weight: 600; }
+
+  .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .power-btn {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #12151a;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .power-btn:hover:not(:disabled) { background: #1a1f25; }
+  .power-btn:disabled { opacity: 0.4; cursor: default; }
+  .power-btn.start { border-color: var(--online); color: var(--online); }
+  .power-btn.stop { border-color: var(--offline); color: var(--offline); }
+  .power-btn.restart { border-color: var(--accent); color: var(--accent); }
+  .power-btn.backup { border-color: #7aa8d1; color: #7aa8d1; }
+  .power-btn.confirming { background: var(--offline); border-color: var(--offline); color: #fff; }
+
+  .status-text {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: right;
+    line-height: 1.5;
+  }
+  .status-text .crafty-error { color: var(--offline); display: block; }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="top-grid">
+
+    <div class="left-col">
+      <div class="header">
+        <div id="blockIcon" class="block-icon offline">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+        <div class="server-name" id="serverName">Minecraft Server</div>
+      </div>
+      <div class="status-row">
+        <div id="statusPill" class="status-pill offline">Offline</div>
+        <span class="uptime-text" id="uptimeText"></span>
+        <span class="updating-badge" id="updatingBadge" style="display:none;">Updating…</span>
+      </div>
+
+      <div class="stat-line">
+        <span class="label">Players</span>
+        <svg class="sparkline" id="sparkline" width="90" height="20" viewBox="0 0 90 20"></svg>
+        <span class="value big" id="playersValue">--</span>
+      </div>
+      <div class="stat-line">
+        <span class="label">Version</span>
+        <span class="value" id="versionValue">--</span>
+        <span class="update-badge" id="updateBadge" style="display:none;"></span>
+        <span class="value" id="latencyValue" style="margin-left:6px;">--</span>
+      </div>
+      <div class="stat-line" id="cpuMemRow" style="display:none;">
+        <span class="label">CPU / RAM / World</span>
+        <span class="value" id="cpuMemValue">--</span>
+      </div>
+
+      <div class="motd" id="motdLine">&nbsp;</div>
+    </div>
+
+    <div class="right-col">
+      <div class="players-line" id="playersLine">&nbsp;</div>
+
+      <div class="section-header">
+        <span id="modLoaderLabel">Mods</span>
+        <span class="count" id="modCount">0</span>
+      </div>
+      <div class="mod-list" id="modList"></div>
+    </div>
+
+  </div>
+
+  <div class="console-line" id="consoleLine">&nbsp;</div>
+
+  <div class="bottom-bar">
+    <div class="controls-row" id="controlsRow" style="display:none;">
+      <button id="startBtn" class="power-btn start">Start</button>
+      <button id="stopBtn" class="power-btn stop">Stop</button>
+      <button id="restartBtn" class="power-btn restart">Restart</button>
+      <button id="backupBtn" class="power-btn backup">Backup</button>
+    </div>
+    <div class="status-text">
+      <span id="lastUpdated">never updated</span> <span id="lastSeen"></span>
+      <span id="idleNudge"></span>
+      <span id="lastBackup"></span>
+      <span class="crafty-error" id="craftyError"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const RELAY_URL = "http://127.0.0.1:8787/mc-stats";
+  const ACTION_URL = "http://127.0.0.1:8787/mc-action";
+  const POLL_MS = 10000;
+  let clientPendingAction = null;
+  let prevPlayerNames = null; // null until first poll, so we don't flash on initial load
+  let confirmingAction = null;
+  let confirmTimeout = null;
+  let lastMc = null; // most recent server payload, so the confirm timeout can re-render without a fresh poll
+
+  function formatDuration(secs) {
+    secs = Math.max(0, Math.floor(secs));
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    if (h > 0) return h + "h " + m + "m";
+    if (m > 0) return m + "m";
+    return secs + "s";
+  }
+
+  function timeAgo(ts) {
+    if (!ts) return "never";
+    const secs = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+    if (secs < 60) return secs + "s ago";
+    if (secs < 3600) return Math.floor(secs / 60) + "m ago";
+    return Math.floor(secs / 3600) + "h ago";
+  }
+
+  function render(mc) {
+    lastMc = mc;
+    const online = !!mc.online;
+
+    document.getElementById("blockIcon").className = "block-icon " + (online ? "online" : "offline");
+    const pill = document.getElementById("statusPill");
+    pill.textContent = online ? "Online" : "Offline";
+    pill.className = "status-pill " + (online ? "online" : "offline");
+
+    document.getElementById("uptimeText").textContent =
+      online && mc.started_at ? "Up " + formatDuration(Date.now() / 1000 - mc.started_at) : "";
+    document.getElementById("updatingBadge").style.display = mc.crafty_updating ? "inline-block" : "none";
+
+    document.getElementById("serverName").textContent =
+      (mc.host || "Minecraft") + (mc.port ? ":" + mc.port : "");
+
+    document.getElementById("playersValue").textContent =
+      online && mc.players_online != null ? mc.players_online + "/" + mc.players_max : "--";
+    document.getElementById("versionValue").textContent = online && mc.version ? mc.version : "--";
+    document.getElementById("latencyValue").textContent =
+      online && mc.latency_ms != null ? Math.round(mc.latency_ms) + "ms" : "--";
+
+    document.getElementById("motdLine").textContent = online && mc.motd ? mc.motd : (mc.error || "\u00A0");
+
+    const names = mc.player_names || [];
+    const playersLineEl = document.getElementById("playersLine");
+    playersLineEl.innerHTML = online && names.length
+      ? "<b>Online:</b> " + names.join(", ")
+      : "&nbsp;";
+
+    if (prevPlayerNames !== null) {
+      const joined = names.some(n => !prevPlayerNames.includes(n));
+      const left = prevPlayerNames.some(n => !names.includes(n));
+      if (joined || left) {
+        playersLineEl.classList.remove("flash");
+        void playersLineEl.offsetWidth; // restart the CSS animation
+        playersLineEl.classList.add("flash");
+      }
+    }
+    prevPlayerNames = names;
+
+    // Update-available badge (vanilla version comparison only)
+    const updateBadge = document.getElementById("updateBadge");
+    if (mc.update_available) {
+      updateBadge.style.display = "inline";
+      updateBadge.textContent = "\u2191 " + mc.mc_latest_release;
+    } else {
+      updateBadge.style.display = "none";
+    }
+
+    // CPU/RAM/World combined -- only meaningful once Crafty is configured
+    const cpuMemRow = document.getElementById("cpuMemRow");
+    if (mc.crafty_enabled && (mc.crafty_cpu_percent != null || mc.crafty_mem || mc.world_size)) {
+      cpuMemRow.style.display = "flex";
+      const cpu = mc.crafty_cpu_percent != null ? Math.round(mc.crafty_cpu_percent) + "%" : "--";
+      const mem = mc.crafty_mem ? mc.crafty_mem + (mc.crafty_mem_percent ? " (" + mc.crafty_mem_percent + "%)" : "") : "--";
+      const world = mc.world_size || "--";
+      document.getElementById("cpuMemValue").textContent = cpu + " / " + mem + " / " + world;
+    } else {
+      cpuMemRow.style.display = "none";
+    }
+
+    const mods = mc.mod_list || [];
+    const loaderLabel = mc.mod_loader === "forge" ? "Forge Mods" : (mc.mod_loader === "vanilla" ? "Vanilla" : "Mods");
+    document.getElementById("modLoaderLabel").textContent = loaderLabel;
+    document.getElementById("modCount").textContent = mc.mod_count != null ? mc.mod_count : "0";
+
+    const modListEl = document.getElementById("modList");
+    modListEl.innerHTML = "";
+    mods.forEach(m => {
+      const chip = document.createElement("span");
+      chip.className = "mod-chip";
+      chip.innerHTML = "<b>" + m.id + "</b>" + (m.version ? " " + m.version : "");
+      modListEl.appendChild(chip);
+    });
+    if (mc.mod_list_truncated) {
+      const more = document.createElement("span");
+      more.className = "mod-chip";
+      more.textContent = "+more (truncated)";
+      modListEl.appendChild(more);
+    }
+
+    // Sparkline: last ~hour of players_online samples
+    const history = mc.player_history || [];
+    const sparkEl = document.getElementById("sparkline");
+    if (history.length > 1) {
+      const maxVal = Math.max(1, ...history);
+      const w = 90, h = 20, pad = 2;
+      const points = history.map((v, i) => {
+        const x = (i / (history.length - 1)) * w;
+        const y = h - pad - (v / maxVal) * (h - pad * 2);
+        return x.toFixed(1) + "," + y.toFixed(1);
+      }).join(" ");
+      sparkEl.innerHTML = '<polyline points="' + points + '"></polyline>';
+      sparkEl.style.display = "inline-block";
+    } else {
+      sparkEl.style.display = "none";
+    }
+
+    // Idle nudge -- only meaningful while Crafty confirms the process is running
+    document.getElementById("idleNudge").textContent =
+      mc.crafty_running && mc.empty_since
+        ? "\u00b7 empty " + formatDuration(Date.now() / 1000 - mc.empty_since)
+        : "";
+
+    // Console tail -- just the single most recent line, to keep the footprint small
+    const tail = mc.console_tail || [];
+    document.getElementById("consoleLine").textContent = tail.length ? tail[tail.length - 1] : "\u00A0";
+
+    document.getElementById("lastUpdated").textContent = "updated " + timeAgo(mc.updated_at);
+    document.getElementById("lastSeen").textContent =
+      online ? "" : (mc.last_online_at ? "\u00b7 last seen " + timeAgo(mc.last_online_at) : "");
+    document.getElementById("lastBackup").textContent =
+      mc.last_backup_triggered_at ? "\u00b7 backup requested " + timeAgo(mc.last_backup_triggered_at) : "";
+
+    document.getElementById("craftyError").textContent = mc.crafty_error || "";
+
+    const controlsRow = document.getElementById("controlsRow");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const backupBtn = document.getElementById("backupBtn");
+
+    if (!mc.crafty_enabled) {
+      controlsRow.style.display = "none";
+    } else {
+      controlsRow.style.display = "flex";
+      const pending = mc.crafty_action_pending || clientPendingAction;
+      const running = !!mc.crafty_running;
+      const starting = !!mc.crafty_starting;
+
+      startBtn.disabled = !!pending || running || starting;
+      stopBtn.disabled = !!pending || (!running && !starting);
+      restartBtn.disabled = !!pending || (!running && !starting);
+      backupBtn.disabled = !!pending || !running;
+
+      startBtn.textContent = pending === "start" ? "Starting…" : "Start";
+      backupBtn.textContent = pending === "backup" ? "Backing up…" : "Backup";
+
+      if (pending === "stop") {
+        stopBtn.textContent = "Stopping…";
+        stopBtn.className = "power-btn stop";
+      } else if (confirmingAction === "stop") {
+        stopBtn.textContent = "Tap to confirm";
+        stopBtn.className = "power-btn confirming";
+      } else {
+        stopBtn.textContent = "Stop";
+        stopBtn.className = "power-btn stop";
+      }
+
+      if (pending === "restart") {
+        restartBtn.textContent = "Restarting…";
+        restartBtn.className = "power-btn restart";
+      } else if (confirmingAction === "restart") {
+        restartBtn.textContent = "Tap to confirm";
+        restartBtn.className = "power-btn confirming";
+      } else {
+        restartBtn.textContent = "Restart";
+        restartBtn.className = "power-btn restart";
+      }
+
+      if (mc.crafty_action_pending === null && clientPendingAction) {
+        clientPendingAction = null;
+      }
+    }
+  }
+
+  function confirmableSendAction(action) {
+    if (confirmingAction === action) {
+      clearTimeout(confirmTimeout);
+      confirmingAction = null;
+      sendAction(action);
+    } else {
+      confirmingAction = action;
+      clearTimeout(confirmTimeout);
+      confirmTimeout = setTimeout(() => {
+        confirmingAction = null;
+        if (lastMc) render(lastMc);
+      }, 4000);
+      if (lastMc) render(lastMc);
+    }
+  }
+
+  document.getElementById("startBtn").onclick = () => sendAction("start");
+  document.getElementById("stopBtn").onclick = () => confirmableSendAction("stop");
+  document.getElementById("restartBtn").onclick = () => confirmableSendAction("restart");
+  document.getElementById("backupBtn").onclick = () => sendAction("backup");
+
+  async function sendAction(action) {
+    clientPendingAction = action;
+    try {
+      await fetch(ACTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+    } catch (err) {
+      clientPendingAction = null;
+    }
+    poll();
+  }
+
+  function renderUnreachable() {
+    document.getElementById("blockIcon").className = "block-icon offline";
+    const pill = document.getElementById("statusPill");
+    pill.textContent = "Relay Down";
+    pill.className = "status-pill offline";
+    document.getElementById("motdLine").textContent = "Can't reach relay at 127.0.0.1:8787";
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch(RELAY_URL, { cache: "no-store" });
+      if (!res.ok) throw new Error("bad response");
+      const mc = await res.json();
+      render(mc);
+    } catch (err) {
+      renderUnreachable();
+    }
+  }
+
+  poll();
+  setInterval(poll, POLL_MS);
+</script>
+
+</body>
+</html>
