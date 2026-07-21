@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Minecraft Server Widget</title>
+<title>Minecraft Servers Widget</title>
 <style>
   :root {
     --bg: #14181c;
@@ -35,10 +35,10 @@
     color: var(--text);
   }
 
-  /* Built for the Small XENEON Edge slot: 840 x 344px. Plenty of width,
-     tight height -- so this is a two-column layout (info+controls left,
-     players+mods right) rather than one long stacked column. */
-  .card {
+  /* Built for the Medium XENEON Edge slot: 840 x 696px -- two independent
+     servers stacked, each getting roughly the same footprint the original
+     single-server Small (840x344) design used. */
+  .dual-card {
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -46,8 +46,23 @@
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 16px 22px;
-    gap: 8px;
+    overflow: hidden;
+  }
+
+  .server-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 22px;
+    gap: 6px;
+    min-height: 0;
+  }
+
+  .panel-divider {
+    height: 1px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 22px;
   }
 
   .top-grid {
@@ -61,14 +76,14 @@
   .left-col {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     min-height: 0;
   }
 
   .right-col {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     min-height: 0;
     border-left: 1px solid var(--border);
     padding-left: 22px;
@@ -81,10 +96,10 @@
   }
 
   .block-icon {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
-    border-radius: 5px;
+    border-radius: 4px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
@@ -94,16 +109,16 @@
     transition: background 0.4s ease;
   }
   .block-icon span { border-radius: 1px; }
-  .block-icon.online { background: #2f3a1f; box-shadow: 0 0 12px var(--online-glow); }
+  .block-icon.online { background: #2f3a1f; box-shadow: 0 0 10px var(--online-glow); }
   .block-icon.online span:nth-child(odd) { background: var(--online); }
   .block-icon.online span:nth-child(even) { background: #4f8a3f; }
-  .block-icon.offline { background: #3a2222; box-shadow: 0 0 12px var(--offline-glow); }
+  .block-icon.offline { background: #3a2222; box-shadow: 0 0 10px var(--offline-glow); }
   .block-icon.offline span { background: #5c3a36; }
   .block-icon.offline span:nth-child(5) { background: var(--offline); }
 
   .server-name {
     font-weight: 600;
-    font-size: 22px;
+    font-size: 16px;
     letter-spacing: 0.2px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -112,10 +127,10 @@
 
   .status-pill {
     font-family: var(--mono);
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.6px;
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: 999px;
     text-transform: uppercase;
     width: fit-content;
@@ -129,16 +144,16 @@
     gap: 10px;
   }
   .uptime-text {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-dim);
   }
   .updating-badge {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--accent);
     background: #2a2115;
-    padding: 2px 7px;
+    padding: 2px 6px;
     border-radius: 4px;
   }
 
@@ -146,49 +161,28 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    font-size: 16px;
+    font-size: 13px;
   }
   .stat-line .label { color: var(--text-dim); }
   .stat-line .value { font-family: var(--mono); font-weight: 600; }
-  .stat-line .value.big { font-size: 30px; }
+  .stat-line .value.big { font-size: 20px; }
 
   .update-badge {
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--accent);
     background: #2a2115;
-    padding: 2px 7px;
+    padding: 2px 6px;
     border-radius: 4px;
     margin-left: 6px;
   }
 
-  .sparkline {
-    flex-shrink: 0;
-  }
+  .sparkline { flex-shrink: 0; }
   .sparkline polyline { fill: none; stroke: var(--online); stroke-width: 1.5; }
 
-  .console-line {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 0;
-    opacity: 0.85;
-  }
-
-  .players-line.flash {
-    animation: flash-bg 1.6s ease-out;
-  }
-  @keyframes flash-bg {
-    0% { background: var(--online-glow); border-radius: 4px; }
-    100% { background: transparent; }
-  }
-
   .motd {
-    font-size: 14.5px;
+    font-size: 12px;
     color: var(--text-dim);
     font-style: italic;
     overflow: hidden;
@@ -200,7 +194,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 11px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -209,16 +203,16 @@
     font-family: var(--mono);
     color: var(--accent);
     font-weight: 700;
-    font-size: 15px;
+    font-size: 12px;
   }
 
   .players-line {
-    font-size: 15px;
+    font-size: 12px;
     color: var(--text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
   }
   .players-line b { color: var(--text); }
@@ -226,7 +220,7 @@
   .mod-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
     overflow-y: auto;
     flex: 1;
     align-content: flex-start;
@@ -234,11 +228,11 @@
   }
   .mod-chip {
     font-family: var(--mono);
-    font-size: 13.5px;
+    font-size: 10.5px;
     background: #12151a;
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 5px;
     white-space: nowrap;
   }
@@ -250,22 +244,18 @@
     justify-content: space-between;
     gap: 12px;
     flex-shrink: 0;
-    border-top: 1px solid var(--border);
-    padding-top: 10px;
+    padding-top: 6px;
   }
 
-  .controls-row {
-    display: flex;
-    gap: 8px;
-  }
+  .controls-row { display: flex; gap: 6px; }
 
   .power-btn {
     font-family: var(--sans);
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.3px;
-    padding: 8px 18px;
-    border-radius: 8px;
+    padding: 5px 12px;
+    border-radius: 7px;
     border: 1px solid var(--border);
     background: #12151a;
     color: var(--text);
@@ -282,10 +272,10 @@
 
   .status-text {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 10px;
     color: var(--text-dim);
     text-align: right;
-    line-height: 1.5;
+    line-height: 1.4;
   }
   .status-text .crafty-error { color: var(--offline); display: block; }
 
@@ -295,82 +285,87 @@
 </head>
 <body>
 
-<div class="card">
-  <div class="top-grid">
-
-    <div class="left-col">
-      <div class="header">
-        <div id="blockIcon" class="block-icon offline">
-          <span></span><span></span><span></span>
-          <span></span><span></span><span></span>
-          <span></span><span></span><span></span>
-        </div>
-        <div class="server-name" id="serverName">Minecraft Server</div>
-      </div>
-      <div class="status-row">
-        <div id="statusPill" class="status-pill offline">Offline</div>
-        <span class="uptime-text" id="uptimeText"></span>
-        <span class="updating-badge" id="updatingBadge" style="display:none;">Updating…</span>
-      </div>
-
-      <div class="stat-line">
-        <span class="label">Players</span>
-        <svg class="sparkline" id="sparkline" width="90" height="20" viewBox="0 0 90 20"></svg>
-        <span class="value big" id="playersValue">--</span>
-      </div>
-      <div class="stat-line">
-        <span class="label">Version</span>
-        <span class="value" id="versionValue">--</span>
-        <span class="update-badge" id="updateBadge" style="display:none;"></span>
-        <span class="value" id="latencyValue" style="margin-left:6px;">--</span>
-      </div>
-      <div class="stat-line" id="cpuMemRow" style="display:none;">
-        <span class="label">CPU / RAM / World</span>
-        <span class="value" id="cpuMemValue">--</span>
-      </div>
-
-      <div class="motd" id="motdLine">&nbsp;</div>
-    </div>
-
-    <div class="right-col">
-      <div class="players-line" id="playersLine">&nbsp;</div>
-
-      <div class="section-header">
-        <span id="modLoaderLabel">Mods</span>
-        <span class="count" id="modCount">0</span>
-      </div>
-      <div class="mod-list" id="modList"></div>
-    </div>
-
-  </div>
-
-  <div class="console-line" id="consoleLine">&nbsp;</div>
-
-  <div class="bottom-bar">
-    <div class="controls-row" id="controlsRow" style="display:none;">
-      <button id="startBtn" class="power-btn start">Start</button>
-      <button id="stopBtn" class="power-btn stop">Stop</button>
-      <button id="restartBtn" class="power-btn restart">Restart</button>
-      <button id="backupBtn" class="power-btn backup">Backup</button>
-    </div>
-    <div class="status-text">
-      <span id="lastUpdated">never updated</span> <span id="lastSeen"></span>
-      <span id="idleNudge"></span>
-      <span id="lastBackup"></span>
-      <span class="crafty-error" id="craftyError"></span>
-    </div>
-  </div>
+<div class="dual-card">
+  <div class="server-panel" id="panel-0"></div>
+  <div class="panel-divider"></div>
+  <div class="server-panel" id="panel-1"></div>
 </div>
 
 <script>
   const RELAY_URL = "http://127.0.0.1:8787/mc-stats";
   const ACTION_URL = "http://127.0.0.1:8787/mc-action";
   const POLL_MS = 10000;
-  let clientPendingAction = null;
-  let prevPlayerNames = null; // null until first poll, so we don't flash on initial load
-  let confirmingAction = null;
-  let confirmTimeout = null;
-  let lastMc = null; // most recent server payload, so the confirm timeout can re-render without a fresh poll
+
+  // Per-panel UI state, keyed by server index (0/1) -- each panel is fully
+  // independent since both servers can be live at once.
+  const panelState = {
+    0: { clientPendingAction: null, prevPlayerNames: null, confirmingAction: null, confirmTimeout: null, lastMc: null },
+    1: { clientPendingAction: null, prevPlayerNames: null, confirmingAction: null, confirmTimeout: null, lastMc: null },
+  };
+
+  function panelTemplate(idx) {
+    return `
+      <div class="top-grid">
+        <div class="left-col">
+          <div class="header">
+            <div id="blockIcon-${idx}" class="block-icon offline">
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+            </div>
+            <div class="server-name" id="serverName-${idx}">Minecraft Server</div>
+          </div>
+          <div class="status-row">
+            <div id="statusPill-${idx}" class="status-pill offline">Offline</div>
+            <span class="uptime-text" id="uptimeText-${idx}"></span>
+            <span class="updating-badge" id="updatingBadge-${idx}" style="display:none;">Updating…</span>
+          </div>
+
+          <div class="stat-line">
+            <span class="label">Players</span>
+            <svg class="sparkline" id="sparkline-${idx}" width="70" height="18" viewBox="0 0 70 18"></svg>
+            <span class="value big" id="playersValue-${idx}">--</span>
+          </div>
+          <div class="stat-line">
+            <span class="label">Version</span>
+            <span class="value" id="versionValue-${idx}">--</span>
+            <span class="update-badge" id="updateBadge-${idx}" style="display:none;"></span>
+            <span class="value" id="latencyValue-${idx}" style="margin-left:6px;">--</span>
+          </div>
+          <div class="stat-line" id="cpuMemRow-${idx}" style="display:none;">
+            <span class="label">CPU / RAM / World</span>
+            <span class="value" id="cpuMemValue-${idx}">--</span>
+          </div>
+
+          <div class="motd" id="motdLine-${idx}">&nbsp;</div>
+        </div>
+
+        <div class="right-col">
+          <div class="players-line" id="playersLine-${idx}">&nbsp;</div>
+          <div class="section-header">
+            <span id="modLoaderLabel-${idx}">Mods</span>
+            <span class="count" id="modCount-${idx}">0</span>
+          </div>
+          <div class="mod-list" id="modList-${idx}"></div>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <div class="controls-row" id="controlsRow-${idx}" style="display:none;">
+          <button id="startBtn-${idx}" class="power-btn start">Start</button>
+          <button id="stopBtn-${idx}" class="power-btn stop">Stop</button>
+          <button id="restartBtn-${idx}" class="power-btn restart">Restart</button>
+          <button id="backupBtn-${idx}" class="power-btn backup">Backup</button>
+        </div>
+        <div class="status-text">
+          <span id="lastUpdated-${idx}">never updated</span> <span id="lastSeen-${idx}"></span>
+          <span id="idleNudge-${idx}"></span>
+          <span id="lastBackup-${idx}"></span>
+          <span class="crafty-error" id="craftyError-${idx}"></span>
+        </div>
+      </div>
+    `;
+  }
 
   function formatDuration(secs) {
     secs = Math.max(0, Math.floor(secs));
@@ -389,49 +384,39 @@
     return Math.floor(secs / 3600) + "h ago";
   }
 
-  function render(mc) {
-    lastMc = mc;
+  function el(idx, id) {
+    return document.getElementById(id + "-" + idx);
+  }
+
+  function render(idx, mc) {
+    const st = panelState[idx];
+    st.lastMc = mc;
     const online = !!mc.online;
 
-    document.getElementById("blockIcon").className = "block-icon " + (online ? "online" : "offline");
-    const pill = document.getElementById("statusPill");
+    el(idx, "blockIcon").className = "block-icon " + (online ? "online" : "offline");
+    const pill = el(idx, "statusPill");
     pill.textContent = online ? "Online" : "Offline";
     pill.className = "status-pill " + (online ? "online" : "offline");
 
-    document.getElementById("uptimeText").textContent =
+    el(idx, "uptimeText").textContent =
       online && mc.started_at ? "Up " + formatDuration(Date.now() / 1000 - mc.started_at) : "";
-    document.getElementById("updatingBadge").style.display = mc.crafty_updating ? "inline-block" : "none";
+    el(idx, "updatingBadge").style.display = mc.crafty_updating ? "inline-block" : "none";
 
-    document.getElementById("serverName").textContent =
-      (mc.host || "Minecraft") + (mc.port ? ":" + mc.port : "");
+    el(idx, "serverName").textContent = mc.name || (mc.host + ":" + mc.port);
 
-    document.getElementById("playersValue").textContent =
+    el(idx, "playersValue").textContent =
       online && mc.players_online != null ? mc.players_online + "/" + mc.players_max : "--";
-    document.getElementById("versionValue").textContent = online && mc.version ? mc.version : "--";
-    document.getElementById("latencyValue").textContent =
+    el(idx, "versionValue").textContent = online && mc.version ? mc.version : "--";
+    el(idx, "latencyValue").textContent =
       online && mc.latency_ms != null ? Math.round(mc.latency_ms) + "ms" : "--";
 
-    document.getElementById("motdLine").textContent = online && mc.motd ? mc.motd : (mc.error || "\u00A0");
+    el(idx, "motdLine").textContent = online && mc.motd ? mc.motd : (mc.error || "\u00A0");
 
     const names = mc.player_names || [];
-    const playersLineEl = document.getElementById("playersLine");
-    playersLineEl.innerHTML = online && names.length
-      ? "<b>Online:</b> " + names.join(", ")
-      : "&nbsp;";
+    const playersLineEl = el(idx, "playersLine");
+    playersLineEl.innerHTML = online && names.length ? "<b>Online:</b> " + names.join(", ") : "&nbsp;";
 
-    if (prevPlayerNames !== null) {
-      const joined = names.some(n => !prevPlayerNames.includes(n));
-      const left = prevPlayerNames.some(n => !names.includes(n));
-      if (joined || left) {
-        playersLineEl.classList.remove("flash");
-        void playersLineEl.offsetWidth; // restart the CSS animation
-        playersLineEl.classList.add("flash");
-      }
-    }
-    prevPlayerNames = names;
-
-    // Update-available badge (vanilla version comparison only)
-    const updateBadge = document.getElementById("updateBadge");
+    const updateBadge = el(idx, "updateBadge");
     if (mc.update_available) {
       updateBadge.style.display = "inline";
       updateBadge.textContent = "\u2191 " + mc.mc_latest_release;
@@ -439,24 +424,23 @@
       updateBadge.style.display = "none";
     }
 
-    // CPU/RAM/World combined -- only meaningful once Crafty is configured
-    const cpuMemRow = document.getElementById("cpuMemRow");
+    const cpuMemRow = el(idx, "cpuMemRow");
     if (mc.crafty_enabled && (mc.crafty_cpu_percent != null || mc.crafty_mem || mc.world_size)) {
       cpuMemRow.style.display = "flex";
       const cpu = mc.crafty_cpu_percent != null ? Math.round(mc.crafty_cpu_percent) + "%" : "--";
       const mem = mc.crafty_mem ? mc.crafty_mem + (mc.crafty_mem_percent ? " (" + mc.crafty_mem_percent + "%)" : "") : "--";
       const world = mc.world_size || "--";
-      document.getElementById("cpuMemValue").textContent = cpu + " / " + mem + " / " + world;
+      el(idx, "cpuMemValue").textContent = cpu + " / " + mem + " / " + world;
     } else {
       cpuMemRow.style.display = "none";
     }
 
     const mods = mc.mod_list || [];
     const loaderLabel = mc.mod_loader === "forge" ? "Forge Mods" : (mc.mod_loader === "vanilla" ? "Vanilla" : "Mods");
-    document.getElementById("modLoaderLabel").textContent = loaderLabel;
-    document.getElementById("modCount").textContent = mc.mod_count != null ? mc.mod_count : "0";
+    el(idx, "modLoaderLabel").textContent = loaderLabel;
+    el(idx, "modCount").textContent = mc.mod_count != null ? mc.mod_count : "0";
 
-    const modListEl = document.getElementById("modList");
+    const modListEl = el(idx, "modList");
     modListEl.innerHTML = "";
     mods.forEach(m => {
       const chip = document.createElement("span");
@@ -471,12 +455,11 @@
       modListEl.appendChild(more);
     }
 
-    // Sparkline: last ~hour of players_online samples
     const history = mc.player_history || [];
-    const sparkEl = document.getElementById("sparkline");
+    const sparkEl = el(idx, "sparkline");
     if (history.length > 1) {
       const maxVal = Math.max(1, ...history);
-      const w = 90, h = 20, pad = 2;
+      const w = 70, h = 18, pad = 2;
       const points = history.map((v, i) => {
         const x = (i / (history.length - 1)) * w;
         const y = h - pad - (v / maxVal) * (h - pad * 2);
@@ -488,125 +471,138 @@
       sparkEl.style.display = "none";
     }
 
-    // Idle nudge -- only meaningful while Crafty confirms the process is running
-    document.getElementById("idleNudge").textContent =
+    el(idx, "idleNudge").textContent =
       mc.crafty_running && mc.empty_since
         ? "\u00b7 empty " + formatDuration(Date.now() / 1000 - mc.empty_since)
         : "";
 
-    // Console tail -- just the single most recent line, to keep the footprint small
     const tail = mc.console_tail || [];
-    document.getElementById("consoleLine").textContent = tail.length ? tail[tail.length - 1] : "\u00A0";
+    // no dedicated console line in this compact layout -- fold the latest
+    // line into the motd slot only when there's no motd/error to show instead
+    if (!mc.motd && !mc.error && tail.length) {
+      el(idx, "motdLine").textContent = tail[tail.length - 1];
+    }
 
-    document.getElementById("lastUpdated").textContent = "updated " + timeAgo(mc.updated_at);
-    document.getElementById("lastSeen").textContent =
+    el(idx, "lastUpdated").textContent = "updated " + timeAgo(mc.updated_at);
+    el(idx, "lastSeen").textContent =
       online ? "" : (mc.last_online_at ? "\u00b7 last seen " + timeAgo(mc.last_online_at) : "");
-    document.getElementById("lastBackup").textContent =
-      mc.last_backup_triggered_at ? "\u00b7 backup requested " + timeAgo(mc.last_backup_triggered_at) : "";
+    el(idx, "lastBackup").textContent =
+      mc.last_backup_triggered_at ? "\u00b7 backup " + timeAgo(mc.last_backup_triggered_at) : "";
+    el(idx, "craftyError").textContent = mc.crafty_error || "";
 
-    document.getElementById("craftyError").textContent = mc.crafty_error || "";
-
-    const controlsRow = document.getElementById("controlsRow");
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const restartBtn = document.getElementById("restartBtn");
-    const backupBtn = document.getElementById("backupBtn");
+    const controlsRow = el(idx, "controlsRow");
+    const startBtn = el(idx, "startBtn");
+    const stopBtn = el(idx, "stopBtn");
+    const restartBtn = el(idx, "restartBtn");
+    const backupBtn = el(idx, "backupBtn");
 
     if (!mc.crafty_enabled) {
       controlsRow.style.display = "none";
+      return;
+    }
+    controlsRow.style.display = "flex";
+    const pending = mc.crafty_action_pending || st.clientPendingAction;
+    const running = !!mc.crafty_running;
+    const starting = !!mc.crafty_starting;
+
+    startBtn.disabled = !!pending || running || starting;
+    stopBtn.disabled = !!pending || (!running && !starting);
+    restartBtn.disabled = !!pending || (!running && !starting);
+    backupBtn.disabled = !!pending || !running;
+
+    startBtn.textContent = pending === "start" ? "Starting…" : "Start";
+    backupBtn.textContent = pending === "backup" ? "Backing up…" : "Backup";
+
+    if (pending === "stop") {
+      stopBtn.textContent = "Stopping…"; stopBtn.className = "power-btn stop";
+    } else if (st.confirmingAction === "stop") {
+      stopBtn.textContent = "Confirm?"; stopBtn.className = "power-btn confirming";
     } else {
-      controlsRow.style.display = "flex";
-      const pending = mc.crafty_action_pending || clientPendingAction;
-      const running = !!mc.crafty_running;
-      const starting = !!mc.crafty_starting;
+      stopBtn.textContent = "Stop"; stopBtn.className = "power-btn stop";
+    }
 
-      startBtn.disabled = !!pending || running || starting;
-      stopBtn.disabled = !!pending || (!running && !starting);
-      restartBtn.disabled = !!pending || (!running && !starting);
-      backupBtn.disabled = !!pending || !running;
+    if (pending === "restart") {
+      restartBtn.textContent = "Restarting…"; restartBtn.className = "power-btn restart";
+    } else if (st.confirmingAction === "restart") {
+      restartBtn.textContent = "Confirm?"; restartBtn.className = "power-btn confirming";
+    } else {
+      restartBtn.textContent = "Restart"; restartBtn.className = "power-btn restart";
+    }
 
-      startBtn.textContent = pending === "start" ? "Starting…" : "Start";
-      backupBtn.textContent = pending === "backup" ? "Backing up…" : "Backup";
-
-      if (pending === "stop") {
-        stopBtn.textContent = "Stopping…";
-        stopBtn.className = "power-btn stop";
-      } else if (confirmingAction === "stop") {
-        stopBtn.textContent = "Tap to confirm";
-        stopBtn.className = "power-btn confirming";
-      } else {
-        stopBtn.textContent = "Stop";
-        stopBtn.className = "power-btn stop";
-      }
-
-      if (pending === "restart") {
-        restartBtn.textContent = "Restarting…";
-        restartBtn.className = "power-btn restart";
-      } else if (confirmingAction === "restart") {
-        restartBtn.textContent = "Tap to confirm";
-        restartBtn.className = "power-btn confirming";
-      } else {
-        restartBtn.textContent = "Restart";
-        restartBtn.className = "power-btn restart";
-      }
-
-      if (mc.crafty_action_pending === null && clientPendingAction) {
-        clientPendingAction = null;
-      }
+    if (mc.crafty_action_pending === null && st.clientPendingAction) {
+      st.clientPendingAction = null;
     }
   }
 
-  function confirmableSendAction(action) {
-    if (confirmingAction === action) {
-      clearTimeout(confirmTimeout);
-      confirmingAction = null;
-      sendAction(action);
+  function renderUnreachable(idx) {
+    el(idx, "blockIcon").className = "block-icon offline";
+    const pill = el(idx, "statusPill");
+    pill.textContent = "Relay Down";
+    pill.className = "status-pill offline";
+    el(idx, "motdLine").textContent = "Can't reach relay at 127.0.0.1:8787";
+  }
+
+  function confirmableSendAction(idx, serverName, action) {
+    const st = panelState[idx];
+    if (st.confirmingAction === action) {
+      clearTimeout(st.confirmTimeout);
+      st.confirmingAction = null;
+      sendAction(idx, serverName, action);
     } else {
-      confirmingAction = action;
-      clearTimeout(confirmTimeout);
-      confirmTimeout = setTimeout(() => {
-        confirmingAction = null;
-        if (lastMc) render(lastMc);
+      st.confirmingAction = action;
+      clearTimeout(st.confirmTimeout);
+      st.confirmTimeout = setTimeout(() => {
+        st.confirmingAction = null;
+        if (st.lastMc) render(idx, st.lastMc);
       }, 4000);
-      if (lastMc) render(lastMc);
+      if (st.lastMc) render(idx, st.lastMc);
     }
   }
 
-  document.getElementById("startBtn").onclick = () => sendAction("start");
-  document.getElementById("stopBtn").onclick = () => confirmableSendAction("stop");
-  document.getElementById("restartBtn").onclick = () => confirmableSendAction("restart");
-  document.getElementById("backupBtn").onclick = () => sendAction("backup");
-
-  async function sendAction(action) {
-    clientPendingAction = action;
+  async function sendAction(idx, serverName, action) {
+    panelState[idx].clientPendingAction = action;
     try {
       await fetch(ACTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, server: serverName }),
       });
     } catch (err) {
-      clientPendingAction = null;
+      panelState[idx].clientPendingAction = null;
     }
     poll();
   }
 
-  function renderUnreachable() {
-    document.getElementById("blockIcon").className = "block-icon offline";
-    const pill = document.getElementById("statusPill");
-    pill.textContent = "Relay Down";
-    pill.className = "status-pill offline";
-    document.getElementById("motdLine").textContent = "Can't reach relay at 127.0.0.1:8787";
+  function wireButtons(idx, serverName) {
+    el(idx, "startBtn").onclick = () => sendAction(idx, serverName, "start");
+    el(idx, "stopBtn").onclick = () => confirmableSendAction(idx, serverName, "stop");
+    el(idx, "restartBtn").onclick = () => confirmableSendAction(idx, serverName, "restart");
+    el(idx, "backupBtn").onclick = () => sendAction(idx, serverName, "backup");
   }
+
+  let panelsBuilt = false;
 
   async function poll() {
     try {
       const res = await fetch(RELAY_URL, { cache: "no-store" });
       if (!res.ok) throw new Error("bad response");
-      const mc = await res.json();
-      render(mc);
+      const servers = await res.json();
+
+      if (!panelsBuilt) {
+        servers.forEach((mc, idx) => {
+          const panel = document.getElementById("panel-" + idx);
+          if (panel) {
+            panel.innerHTML = panelTemplate(idx);
+            wireButtons(idx, mc.name);
+          }
+        });
+        panelsBuilt = true;
+      }
+
+      servers.forEach((mc, idx) => render(idx, mc));
     } catch (err) {
-      renderUnreachable();
+      renderUnreachable(0);
+      renderUnreachable(1);
     }
   }
 

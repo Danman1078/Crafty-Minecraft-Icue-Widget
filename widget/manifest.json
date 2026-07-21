@@ -1,9 +1,9 @@
 {
   "author": "danman101010",
   "id": "com.danman101010.minecraft-server-status",
-  "name": "Minecraft Server Status",
-  "description": "Live status of a Crafty-managed Minecraft server: online/offline, players, MOTD, and Forge mod list, via the local TrueNAS relay.",
-  "version": "1.0.0",
+  "name": "Minecraft Servers Status",
+  "description": "Live status of two independently-running Crafty-managed Minecraft servers: online/offline, players, MOTD, and Forge mod list, via the local TrueNAS relay.",
+  "version": "2.0.0",
   "preview_icon": "icon.svg",
   "min_app_version": "5.47.0",
   "min_framework_version": "1.0.0",
